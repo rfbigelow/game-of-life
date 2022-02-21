@@ -6,12 +6,8 @@ use rand::prelude::*;
 use std::collections::HashMap;
 use std::collections::HashSet;
 
-const CELL_SIZE: i32 = 10;
+const CELL_SIZE: i32 = 4;
 const INITIAL_GRID_DIM: i32 = 64;
-
-struct Materials {
-    cell_material: Handle<ColorMaterial>,
-}
 
 struct GameRules {
     lower: u8,
@@ -29,7 +25,7 @@ enum Direction {
     West,
 }
 
-#[derive(PartialEq, Eq, Hash, Copy, Clone)]
+#[derive(PartialEq, Eq, Hash, Copy, Clone, Component)]
 struct GridPosition {
     x: i32,
     y: i32,
@@ -85,16 +81,15 @@ fn spawn_system(
     mut commands: Commands, 
     game_rules: Res<GameRules>, 
     game_state: Res<GridState>,
-    game_materials: Res<Materials>,
 ) {
     for (pos, count) in game_state.neighbors.iter() {
         if *count == game_rules.upper && !game_state.cells.contains(pos) {
             commands.spawn_bundle(SpriteBundle {
                 sprite: Sprite {
-                    size: Vec2::new(1.0, 1.0) * CELL_SIZE as f32,
+                    color: Color::BLACK,
+                    custom_size: Some(Vec2::new(1.0, 1.0) * CELL_SIZE as f32),
                     ..Default::default()
                 },
-                material: game_materials.cell_material.clone(),
                 transform: Transform::from_translation(Vec3::new(pos.x as f32, pos.y as f32, 0.0)),
                 ..Default::default()
             })
@@ -112,7 +107,7 @@ fn despawn_system(
     for (id, pos) in query.iter() {
         let mut despawn = false;
         let vec = Vec2::new(pos.x as f32, pos.y as f32);
-        if vec.length() > 1000.0 {
+        if vec.length() > 500.0 {
             despawn = true;
         }
         else if let Some(count) = game_state.neighbors.get(pos) {
@@ -129,7 +124,6 @@ fn despawn_system(
 
 fn setup(
     mut commands: Commands,
-    mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
     let cell_size = CELL_SIZE;
     let dim = INITIAL_GRID_DIM;
@@ -147,13 +141,6 @@ fn setup(
         cells: HashSet::new(),
     });
 
-    let color_mat = materials.add(ColorMaterial {
-        color: Color::BLACK,
-        ..Default::default()
-    });
-
-    commands.insert_resource(Materials { cell_material: color_mat.clone() });
-
     for i in 0..dim {
         for j in 0..dim {
             let spawn_chance: f32 = random();
@@ -165,10 +152,10 @@ fn setup(
 
             commands.spawn_bundle(SpriteBundle {
                 sprite: Sprite {
-                    size: Vec2::new(1.0, 1.0) * cell_size as f32,
+                    color: Color::BLACK,
+                    custom_size: Some(Vec2::new(1.0, 1.0) * cell_size as f32),
                     ..Default::default()
                 },
-                material: color_mat.clone(),
                 transform: Transform::from_translation(Vec3::new(x, y, 0.0)),
                 ..Default::default()
             })
@@ -178,7 +165,7 @@ fn setup(
 }
 
 fn main() {
-    App::build()
+    App::new()
         .insert_resource(ClearColor(Color::WHITE))
         .add_plugins(DefaultPlugins)
         .add_plugin(LogDiagnosticsPlugin::default())
