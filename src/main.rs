@@ -171,9 +171,9 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_plugin(LogDiagnosticsPlugin::default())
         .add_plugin(FrameTimeDiagnosticsPlugin::default())
-        .add_startup_system(setup.system())
-        .add_system(count_neighbors_system.system().label("count"))
-        .add_system(spawn_system.system().after("count"))
-        .add_system(despawn_system.system().after("count"))
+        .add_startup_system(setup)
+        .add_system(count_neighbors_system.label("count"))
+        .add_system(spawn_system.after("count"))
+        .add_system(despawn_system.after("count"))
         .run();
 }
