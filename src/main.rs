@@ -8,6 +8,7 @@ use std::collections::HashSet;
 
 const CELL_SIZE: i32 = 4;
 const INITIAL_GRID_DIM: i32 = 64;
+const WORLD_RADIUS: f32 = 500.0;
 
 struct GameRules {
     lower: u8,
@@ -107,7 +108,7 @@ fn despawn_system(
     for (id, pos) in query.iter() {
         let mut despawn = false;
         let vec = Vec2::new(pos.x as f32, pos.y as f32);
-        if vec.length() > 500.0 {
+        if vec.length() > WORLD_RADIUS {
             despawn = true;
         }
         else if let Some(count) = game_state.neighbors.get(pos) {
