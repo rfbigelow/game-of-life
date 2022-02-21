@@ -20,4 +20,4 @@ The spawn system iterates over the neighbors map contained in the GridState reso
 
 ## Despawn System
 
-The despawn system iterates over all the cell entities with a query that includes the entity ID and the GridPosition component. It first checks to see if the cell is within the finite world bounds (just a radius around the grid origin, (0, 0)) and marks it for despawning if it is outside of them. Next it checks if the cell has too few or too many neighbors. Either condition spell certain doom for the cell. If the cell will not live past this round, a desapawn command is queued up the that entity.
+The despawn system iterates over all the cell entities with a query that includes the entity ID and the GridPosition component. It first checks to see if the cell is within the finite world bounds (just a radius around the grid origin, (0, 0)) and marks it for despawning if it is outside of them. Next it checks if the cell has too few or too many neighbors. Either condition spell certain doom for the cell. If the cell will not live past this round, a desapawn command is queued up for that entity.
