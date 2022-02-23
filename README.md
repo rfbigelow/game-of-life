@@ -2,6 +2,8 @@
 
 This is an implementation of [Conway's Game of Life](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life) written for the [Bevy](https://bevyengine.org) game engine. One notable difference is that the world is not infinite, which helps keep the frame rate up.
 
+<img src="game_of_life.png" alt="Game of Life screenshot" width=1024 height=768>
+
 # Systems
 
 This example uses 4 ECS systems. The first system, a setup system, randomly generates the initial state. The remaining systems implement the game logic. Two systems (spawn_system and despawn_system) are dependent on another system (count_neighbors_system), but are independent of each other.
