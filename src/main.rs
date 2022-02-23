@@ -1,5 +1,7 @@
-use bevy::prelude::*;
-use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
+use bevy::{
+    diagnostic::{EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
+    prelude::*,
+};
 
 use rand::prelude::*;
 
@@ -8,7 +10,7 @@ use std::collections::HashSet;
 
 const CELL_SIZE: i32 = 4;
 const INITIAL_GRID_DIM: i32 = 64;
-const WORLD_RADIUS: f32 = 500.0;
+const WORLD_RADIUS: f32 = 1000.0;
 
 struct GameRules {
     lower: u8,
@@ -27,6 +29,7 @@ enum Direction {
 }
 
 #[derive(PartialEq, Eq, Hash, Copy, Clone, Component)]
+#[component(storage = "SparseSet")]
 struct GridPosition {
     x: i32,
     y: i32,
@@ -169,8 +172,9 @@ fn main() {
     App::new()
         .insert_resource(ClearColor(Color::WHITE))
         .add_plugins(DefaultPlugins)
-        .add_plugin(LogDiagnosticsPlugin::default())
+        .add_plugin(EntityCountDiagnosticsPlugin::default())
         .add_plugin(FrameTimeDiagnosticsPlugin::default())
+        .add_plugin(LogDiagnosticsPlugin::default())
         .add_startup_system(setup)
         .add_system(count_neighbors_system.label("count"))
         .add_system(spawn_system.after("count"))
