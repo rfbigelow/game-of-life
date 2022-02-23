@@ -2,7 +2,7 @@
 
 This is an implementation of [Conway's Game of Life](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life) written for the [Bevy](https://bevyengine.org) game engine. One notable difference is that the world is not infinite, which helps keep the frame rate up.
 
-<img src="game_of_life.png" alt="Game of Life screenshot" width=1024 height=768>
+![Game of Life screenshot](game_of_life.png)
 
 # Systems
 
