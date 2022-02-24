@@ -12,6 +12,12 @@ const CELL_SIZE: i32 = 4;
 const INITIAL_GRID_DIM: i32 = 64;
 const WORLD_RADIUS: f32 = 1000.0;
 
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+enum AppState {
+    Running,
+    Paused
+}
+
 struct GameRules {
     lower: u8,
     upper: u8,
@@ -42,7 +48,7 @@ struct GridState {
 }
 
 impl GridPosition {
-    fn offset(&self, direction: Direction) -> GridPosition {
+    fn offset(&self, direction: &Direction) -> GridPosition {
         match direction {
             Direction::NorthWest => GridPosition { x: self.x - CELL_SIZE, y: self.y + CELL_SIZE },
             Direction::North => GridPosition { x: self.x, y: self.y + CELL_SIZE },
@@ -57,7 +63,7 @@ impl GridPosition {
 }
 
 fn increment_neighbor_count(neighbors: &mut HashMap<GridPosition, u8>, pos: &GridPosition, dir: Direction) {
-    let neighbor_pos = pos.offset(dir);
+    let neighbor_pos = pos.offset(&dir);
     let count = neighbors.entry(neighbor_pos).or_insert(0);
     *count += 1;
 }
@@ -133,6 +139,7 @@ fn setup(
     let dim = INITIAL_GRID_DIM;
     let half_width = dim * cell_size / 2;
     let half_height = dim * cell_size / 2;
+
     commands.spawn_bundle(OrthographicCameraBundle::new_2d());
 
     commands.insert_resource(GameRules {
@@ -168,16 +175,62 @@ fn setup(
     }
 }
 
+fn zoom_system(mut query: Query<&mut OrthographicProjection>, keyboard_input: Res<Input<KeyCode>>) {
+    for mut ortho in query.iter_mut() {
+        if keyboard_input.just_pressed(KeyCode::Left) {
+            ortho.scale *= 2.0;
+        } else if keyboard_input.just_pressed(KeyCode::Right) {
+            ortho.scale /= 2.0;
+        }
+    }
+}
+
+fn camera_move_system(mut query: Query<&mut Transform, With<OrthographicProjection>>, keyboard_input: Res<Input<KeyCode>>) {
+    const MOVE_DELTA: f32 = 10.0;
+    for mut transform in query.iter_mut() {
+        let mut delta = Vec3::default();
+
+        if keyboard_input.pressed(KeyCode::W) {
+            delta.y += MOVE_DELTA;
+        }
+        else if keyboard_input.pressed(KeyCode::A) {
+            delta.x -= MOVE_DELTA;
+        }
+        else if keyboard_input.pressed(KeyCode::S) {
+            delta.y -= MOVE_DELTA;
+        }
+        else if keyboard_input.pressed(KeyCode::D) {
+            delta.x += MOVE_DELTA;
+        }
+
+        transform.translation += delta;
+    }
+}
+
+fn pause_system(mut state: ResMut<State<AppState>>, keyboard_input: Res<Input<KeyCode>>) {
+    if keyboard_input.just_pressed(KeyCode::Space) {
+        match state.current() {
+            &AppState::Running => { state.set(AppState::Paused).unwrap(); }
+            &AppState::Paused => { state.set(AppState::Running).unwrap(); }
+        }
+    }
+}
+
 fn main() {
     App::new()
+        .add_state(AppState::Running)
+        .add_system_set(SystemSet::on_update(AppState::Running)
+            .with_system(count_neighbors_system)
+            .with_system(spawn_system)
+            .with_system(despawn_system))
         .insert_resource(ClearColor(Color::WHITE))
         .add_plugins(DefaultPlugins)
         .add_plugin(EntityCountDiagnosticsPlugin::default())
         .add_plugin(FrameTimeDiagnosticsPlugin::default())
         .add_plugin(LogDiagnosticsPlugin::default())
         .add_startup_system(setup)
-        .add_system(count_neighbors_system.label("count"))
-        .add_system(spawn_system.after("count"))
-        .add_system(despawn_system.after("count"))
+        .add_system(zoom_system)
+        .add_system(camera_move_system)
+        .add_system(pause_system)
         .run();
 }
