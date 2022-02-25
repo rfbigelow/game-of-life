@@ -8,12 +8,13 @@ use rand::prelude::*;
 use std::collections::HashMap;
 use std::collections::HashSet;
 
-const CELL_SIZE: i32 = 4;
-const INITIAL_GRID_DIM: i32 = 64;
-const WORLD_RADIUS: f32 = 1000.0;
+const CELL_SIZE: i16 = 4;
+const INITIAL_GRID_DIM: i16 = 512;
+const WORLD_RADIUS: f32 = 1_000_000.0;
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 enum AppState {
+    Init,
     Running,
     Paused
 }
@@ -37,8 +38,8 @@ enum Direction {
 #[derive(PartialEq, Eq, Hash, Copy, Clone, Component)]
 #[component(storage = "SparseSet")]
 struct GridPosition {
-    x: i32,
-    y: i32,
+    x: i16,
+    y: i16,
 }
 
 #[derive(Default)]
@@ -59,6 +60,13 @@ impl GridPosition {
             Direction::SouthWest => GridPosition { x: self.x - CELL_SIZE, y: self.y - CELL_SIZE },
             Direction::West => GridPosition { x: self.x - CELL_SIZE, y: self.y },
         }
+    }
+}
+
+fn dead(pos: &GridPosition, neighbors: &HashMap<GridPosition, u8>, lower: u8, upper: u8) -> bool {
+    match neighbors.get(pos) {
+        Some(count) => *count < lower || *count > upper,
+        None => true,
     }
 }
 
@@ -115,48 +123,34 @@ fn despawn_system(
     query: Query<(Entity, &GridPosition)>
 ) {
     for (id, pos) in query.iter() {
-        let mut despawn = false;
         let vec = Vec2::new(pos.x as f32, pos.y as f32);
-        if vec.length() > WORLD_RADIUS {
-            despawn = true;
-        }
-        else if let Some(count) = game_state.neighbors.get(pos) {
-            if *count < game_rules.lower || *count > game_rules.upper {
-                despawn = true;
-            }
-        }
-
-        if despawn {
+        if vec.length() > WORLD_RADIUS || dead(pos, &game_state.neighbors, game_rules.lower, game_rules.upper) {
             commands.entity(id).despawn();
         }
     }
 }
 
-fn setup(
-    mut commands: Commands,
-) {
+fn setup(mut commands: Commands) {
+    commands.spawn_bundle(OrthographicCameraBundle::new_2d());
+}
+
+fn init_system(mut commands: Commands, mut state: ResMut<State<AppState>>, mut game_state: ResMut<GridState>, query: Query<Entity, With<GridPosition>> ) {
     let cell_size = CELL_SIZE;
     let dim = INITIAL_GRID_DIM;
     let half_width = dim * cell_size / 2;
     let half_height = dim * cell_size / 2;
 
-    commands.spawn_bundle(OrthographicCameraBundle::new_2d());
+    game_state.neighbors.clear();
+    game_state.cells.clear();   
 
-    commands.insert_resource(GameRules {
-        lower: 2,
-        upper: 3,
-    });
-
-    commands.insert_resource(GridState {
-        neighbors: HashMap::new(),
-        cells: HashSet::new(),
-    });
+    for id in query.iter() {
+        commands.entity(id).despawn();
+    }
 
     for i in 0..dim {
         for j in 0..dim {
-            let spawn_chance: f32 = random();
 
-            if spawn_chance < 0.95 { continue; }
+            if random() { continue; }
 
             let x = (cell_size * i - half_width) as f32;
             let y = (cell_size * j - half_height) as f32;
@@ -170,9 +164,11 @@ fn setup(
                 transform: Transform::from_translation(Vec3::new(x, y, 0.0)),
                 ..Default::default()
             })
-            .insert(GridPosition { x: x as i32, y: y as i32});
+            .insert(GridPosition { x: x as i16, y: y as i16});
         }
     }
+
+    state.set(AppState::Running).unwrap();
 }
 
 fn zoom_system(mut query: Query<&mut OrthographicProjection>, keyboard_input: Res<Input<KeyCode>>) {
@@ -212,18 +208,33 @@ fn pause_system(mut state: ResMut<State<AppState>>, keyboard_input: Res<Input<Ke
         match state.current() {
             &AppState::Running => { state.set(AppState::Paused).unwrap(); }
             &AppState::Paused => { state.set(AppState::Running).unwrap(); }
+            _ => {}
         }
+    }
+}
+
+fn reset_system(mut state: ResMut<State<AppState>>, keyboard_input: Res<Input<KeyCode>>) {
+    if keyboard_input.just_pressed(KeyCode::R) {
+        state.set(AppState::Init).unwrap();
     }
 }
 
 fn main() {
     App::new()
-        .add_state(AppState::Running)
+        .add_state(AppState::Init)
         .add_system_set(SystemSet::on_update(AppState::Running)
-            .with_system(count_neighbors_system)
-            .with_system(spawn_system)
-            .with_system(despawn_system))
+            .with_system(count_neighbors_system.label("count"))
+            .with_system(spawn_system.after("count"))
+            .with_system(despawn_system.after("count")))
         .insert_resource(ClearColor(Color::WHITE))
+        .insert_resource(GameRules {
+            lower: 2,
+            upper: 3,
+        })
+        .insert_resource(GridState {
+            neighbors: HashMap::new(),
+            cells: HashSet::new(),
+        })
         .add_plugins(DefaultPlugins)
         .add_plugin(EntityCountDiagnosticsPlugin::default())
         .add_plugin(FrameTimeDiagnosticsPlugin::default())
@@ -232,5 +243,8 @@ fn main() {
         .add_system(zoom_system)
         .add_system(camera_move_system)
         .add_system(pause_system)
+        .add_system(reset_system)
+        .add_system_set(SystemSet::on_enter(AppState::Init)
+            .with_system(init_system))
         .run();
 }

@@ -14,15 +14,20 @@ This is an implementation of [Conway's Game of Life](https://en.wikipedia.org/wi
 | A | Move the camera left. |
 | S | Move the camera down. |
 | D | Move the camera right. |
+| R | Reset the simulation. |
 | Space | Pause / unpause the simulation. |
 
 # Systems
 
-This example uses 7 ECS systems. The first system, a setup system, randomly generates the initial state. The remaining systems implement the game logic. Two systems (spawn_system and despawn_system) are dependent on another system (count_neighbors_system), but are independent of each other.
+This section briefly describes each of the systems.
 
 ## Setup System
 
-The setup system populates an initial finite grid of cells. Any cell that is randomly determined to be "alive" gets a sprite and a GridPosition component. Sometimes the initial state won't be "interesting" enough to exhibit dynamic behavior. If this happens, simply restart the app. If you find yourself doing this too often, you can modify the chance that a cell will be granted life.
+This used to initialize the simulation after setting up the scene, but now just does the latter. The sim initialization logic was moved to another system that can be run more than once to allow for resetting the sim while the app is running.
+
+## Init System
+
+The init system populates an initial finite grid of cells. Any cell that is randomly determined to be "alive" gets a sprite and a GridPosition component. Sometimes the initial state won't be "interesting" enough to exhibit dynamic behavior. If this happens, simply reset the simulation with the `R` key. If you find yourself doing this too often, you can modify the chance that a cell will be granted life.
 
 ## Simulation System Set
 
@@ -51,6 +56,10 @@ The camera zoom level is controlled by this system, which runs on each `Orthogra
 ### Camera Move System
 
 The camera move system updates the `Transform` component on entities that also have the `OrthographicProjection` component.
+
+## Reset System
+
+This system simply sets the app state to `AppState::Init`, which will reinitialize the simulation.
 
 ### Pause System
 
