@@ -8,7 +8,7 @@ use rand::prelude::*;
 use std::collections::HashMap;
 use std::collections::HashSet;
 
-const CELL_SIZE: i16 = 4;
+const CELL_SIZE: i16 = 1;
 const INITIAL_GRID_DIM: i16 = 512;
 const WORLD_RADIUS: f32 = 1_000_000.0;
 
