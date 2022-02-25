@@ -189,13 +189,13 @@ fn camera_move_system(mut query: Query<&mut Transform, With<OrthographicProjecti
         if keyboard_input.pressed(KeyCode::W) {
             delta.y += MOVE_DELTA;
         }
-        else if keyboard_input.pressed(KeyCode::A) {
+        if keyboard_input.pressed(KeyCode::A) {
             delta.x -= MOVE_DELTA;
         }
-        else if keyboard_input.pressed(KeyCode::S) {
+        if keyboard_input.pressed(KeyCode::S) {
             delta.y -= MOVE_DELTA;
         }
-        else if keyboard_input.pressed(KeyCode::D) {
+        if keyboard_input.pressed(KeyCode::D) {
             delta.x += MOVE_DELTA;
         }
 
