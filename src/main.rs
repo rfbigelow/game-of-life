@@ -63,6 +63,9 @@ impl GridPosition {
     }
 }
 
+#[derive(Debug, Hash, PartialEq, Eq, Clone, StageLabel)]
+struct FixedUpdateStage;
+
 fn dead(pos: &GridPosition, neighbors: &HashMap<GridPosition, u8>, lower: u8, upper: u8) -> bool {
     match neighbors.get(pos) {
         Some(count) => *count < lower || *count > upper,
@@ -131,7 +134,7 @@ fn despawn_system(
 }
 
 fn setup(mut commands: Commands) {
-    commands.spawn_bundle(OrthographicCameraBundle::new_2d());
+    commands.spawn_bundle(Camera2dBundle::default());
 }
 
 fn init_system(mut commands: Commands, mut state: ResMut<State<AppState>>, mut game_state: ResMut<GridState>, query: Query<Entity, With<GridPosition>> ) {
@@ -168,7 +171,7 @@ fn init_system(mut commands: Commands, mut state: ResMut<State<AppState>>, mut g
         }
     }
 
-    state.set(AppState::Running).unwrap();
+    state.overwrite_set(AppState::Running).unwrap();
 }
 
 fn zoom_system(mut query: Query<&mut OrthographicProjection>, keyboard_input: Res<Input<KeyCode>>) {
@@ -222,10 +225,6 @@ fn reset_system(mut state: ResMut<State<AppState>>, keyboard_input: Res<Input<Ke
 fn main() {
     App::new()
         .add_state(AppState::Init)
-        .add_system_set(SystemSet::on_update(AppState::Running)
-            .with_system(count_neighbors_system.label("count"))
-            .with_system(spawn_system.after("count"))
-            .with_system(despawn_system.after("count")))
         .insert_resource(ClearColor(Color::WHITE))
         .insert_resource(GameRules {
             lower: 2,
@@ -244,7 +243,13 @@ fn main() {
         .add_system(camera_move_system)
         .add_system(pause_system)
         .add_system(reset_system)
+        .add_system_set(SystemSet::on_update(AppState::Running)
+            .with_system(count_neighbors_system.label("count"))
+            .with_system(spawn_system.after("count"))
+            .with_system(despawn_system.after("count"))
+        )
         .add_system_set(SystemSet::on_enter(AppState::Init)
-            .with_system(init_system))
+            .with_system(init_system)
+        )       
         .run();
 }
